@@ -45,7 +45,7 @@ namespace zip2gif
                 new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"),
                 new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"),
                 new Option<int>(new[] { "-fps", "--framerate" }, () => -1, description: "set Framerate"),
-                new Option<int>(new[] { "--delay" }, () => -1, description: "set delay between frames"),
+                new Option<int>(new[] { "--delay" }, () => 30, description: "set delay between frames"),
                 new Option<int>(new[] { "--bit" }, () => 8, description: "Collor deapth, Eather 4 or 8 bit"),
                 new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"),
                 new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"),
@@ -55,7 +55,7 @@ namespace zip2gif
                     Console.WriteLine(path);
                     if (framerate > 0)
                         Program.delay = 1000 / framerate;
-                    else if (delay > 0)
+                    else
                         Program.delay = delay;
                     Program.ignore = ignore;
                     Program.path = Path.GetFullPath(path);
@@ -125,10 +125,10 @@ namespace zip2gif
             {
                 using (ChildProgressBar pbar = data.Item2.Spawn(archive.Entries.Count, "Waiting: " + Path.GetFileName(path), childOptions))
                 {
-                    int delay = 30;
+                    int delay = Program.delay;
 
                     ZipArchiveEntry jsonFile = archive.GetEntry("animation.json");
-                    if (jsonFile != null)
+                    if (jsonFile != null && !Program.ignore)
                     {
                         JsonEntry[] frames = JsonSerializer.Deserialize<JsonEntry[]>(new StreamReader(jsonFile.Open()).ReadToEnd());
                         delay = frames[0].delay;
