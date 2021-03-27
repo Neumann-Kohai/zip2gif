@@ -1,7 +1,6 @@
 ﻿using ShellProgressBar;
 using System;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Drawing;
 using System.IO;
 using System.IO.Compression;
@@ -13,6 +12,9 @@ namespace zip2gif
 {
     internal class Program
     {
+        static int delay = 30;
+        static bool ignore = false;
+
         private static readonly ProgressBarOptions options = new ProgressBarOptions
         {
             ForegroundColor = ConsoleColor.Yellow,
@@ -31,21 +33,23 @@ namespace zip2gif
             DenseProgressBar = true,
         };
 
-        private static void Main(string[] args)
+        private static void Main(string[] unparsedArgs)
         {
-            Argument<string> a = new Argument<string>("path", Directory.GetCurrentDirectory).LegalFilePathsOnly();
-            a.Description = "Path to a folder containing zip files or to a zip file";
-            RootCommand root = new RootCommand
             {
-                a,
-                new Option<bool>(
-                     new [] {"-r", "--recursive" },
-                    description:"NotImplemented     if set the Program will also look in subdirectory for zip files")
-            };
-            root.Description = "A simple Program to convert zip -> gif";
+                RootCommand root = new RootCommand("A simple Program to convert zip -> gif");
+                root.AddArgument(new Argument<string>("path", Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"));
+                root.AddOption(new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"));
+                root.AddOption(new Option<int>(new[] { "-fps", "--framerate" },() => -1, description: "set Framerate"));
+                root.AddOption(new Option<int>(new[] {"--delay"},() => -1, description:"set delay between frames"));
+                root.AddOption(new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"));
 
-            root.Handler = CommandHandler.Create<string, bool>(XxX);
-            root.InvokeAsync(args).Wait();
+                var args = root.Parse(unparsedArgs);
+
+                if (args.FindResultFor())
+                    delay = 1000 / args.FindResultFor("");
+
+            }
+
         }
 
         private static void XxX(string path, bool recursive)
