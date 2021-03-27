@@ -7,7 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Threading;
-
+using System.Linq;
 
 namespace zip2gif
 {
@@ -43,13 +43,13 @@ namespace zip2gif
             {
                 RootCommand root = new RootCommand("A simple Program to convert zip -> gif"){
                 new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"),
-                new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"), 
+                new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"),
                 new Option<int>(new[] { "-fps", "--framerate" }, () => -1, description: "set Framerate"),
-                new Option<int>(new[] { "--delay" }, () => -1, description: "set delay between frames"),  
+                new Option<int>(new[] { "--delay" }, () => -1, description: "set delay between frames"),
                 new Option<int>(new[] { "--bit" }, () => 8, description: "Collor deapth, Eather 4 or 8 bit"),
                 new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"),
                 new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"),
-            };
+                };
                 root.Handler = CommandHandler.Create((string path, string output, int framerate, int delay, bool ignore, int bit, bool recursive) =>
                 {
                     Console.WriteLine(path);
@@ -66,7 +66,7 @@ namespace zip2gif
                         case 0:
                             Program.bitDepth = AnimatedGif.GifQuality.Grayscale;
                             break;
-                        case 4: 
+                        case 4:
                             Program.bitDepth = AnimatedGif.GifQuality.Bit4;
                             break;
                         case 8:
@@ -80,21 +80,29 @@ namespace zip2gif
                 root.Invoke(unparsedArgs);
             }
 
+
             ProgressBar pbar = new ProgressBar(1, "Total", options);
             if (File.Exists(path) && path.EndsWith(".zip"))
                 CreateGif((path, pbar, (CountdownEvent)null));
             else if (Directory.Exists(path))
             {
-                string[] files = Directory.GetFiles(path);
-
+                string[] directorys = { Program.path };
+                if (Program.recursive)
+                    directorys = directorys.Concat(Directory.GetDirectories(path, "*", SearchOption.AllDirectories)).ToArray();
                 using (CountdownEvent countdown = new CountdownEvent(1))
                 {
-                    foreach (string file in files)
+                    foreach (var directory in directorys)
                     {
-                        if (file.EndsWith(".zip"))
+                        string[] files = Directory.GetFiles(directory);
                         {
-                            countdown.AddCount();
-                            ThreadPool.QueueUserWorkItem(CreateGif, (file, pbar, countdown));
+                            foreach (string file in files)
+                            {
+                                if (file.EndsWith(".zip"))
+                                {
+                                    countdown.AddCount();
+                                    ThreadPool.QueueUserWorkItem(CreateGif, (file, pbar, countdown));
+                                }
+                            }
                         }
                     }
                     countdown.Signal();
