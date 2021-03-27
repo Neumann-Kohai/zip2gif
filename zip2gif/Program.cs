@@ -13,9 +13,12 @@ namespace zip2gif
 {
     internal class Program
     {
+        static string path = "";
+        static string output = "";
         static int delay = 30;
-        static int bitDepth = 8;
+        static AnimatedGif.GifQuality bitDepth = AnimatedGif.GifQuality.Bit8;
         static bool ignore = false;
+        static bool recursive = false;
 
         private static readonly ProgressBarOptions options = new ProgressBarOptions
         {
@@ -37,47 +40,45 @@ namespace zip2gif
 
         private static void Main(string[] unparsedArgs)
         {
-            string path = "";
-            string output = "";
-            bool recursive = false;
             {
-                RootCommand root = new RootCommand("A simple Program to convert zip -> gif");
-                root.AddArgument(new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"));
-                root.AddOption(new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"));
-                root.AddOption(new Option<int>(new[] { "-fps", "--framerate" },() => -1, description: "set Framerate"));
-                root.AddOption(new Option<int>(new[] {"--delay"},() => -1, description:"set delay between frames"));
-                root.AddOption(new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"));
-                root.AddOption(new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"));
-                root.AddOption(new Option<int>(new[] { "-bit" }, () => 8, description: "Collor deapth, Eather 4 or 8 bit"));
-
-                root.Handler = CommandHandler.Create<string, bool, int, int, bool, string, int>((string p, bool r, int f, int d, bool i, string o, int b)=> 
+                RootCommand root = new RootCommand("A simple Program to convert zip -> gif"){
+                new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"),
+                new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"), 
+                new Option<int>(new[] { "-fps", "--framerate" }, () => -1, description: "set Framerate"),
+                new Option<int>(new[] { "--delay" }, () => -1, description: "set delay between frames"),  
+                new Option<int>(new[] { "--bit" }, () => 8, description: "Collor deapth, Eather 4 or 8 bit"),
+                new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"),
+                new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"),
+            };
+                root.Handler = CommandHandler.Create((string path, string output, int framerate, int delay, bool ignore, int bit, bool recursive) =>
                 {
-                    if (f > 0)
-                        delay = 1000 / f;
-                    else if (d > 0)
-                        delay = d;
-                    ignore = i;
-                    path = Path.GetFullPath(p);
-                    recursive = r;
-                    output = o;
-                    if (b != 4 || b != 8)
+                    Console.WriteLine(path);
+                    if (framerate > 0)
+                        Program.delay = 1000 / framerate;
+                    else if (delay > 0)
+                        Program.delay = delay;
+                    Program.ignore = ignore;
+                    Program.path = Path.GetFullPath(path);
+                    Program.recursive = recursive;
+                    Program.output = output;
+                    switch (bit)
                     {
-                        Console.WriteLine("Invalid Pixel deapth");
-                        return;
+                        case 0:
+                            Program.bitDepth = AnimatedGif.GifQuality.Grayscale;
+                            break;
+                        case 4: 
+                            Program.bitDepth = AnimatedGif.GifQuality.Bit4;
+                            break;
+                        case 8:
+                            Program.bitDepth = AnimatedGif.GifQuality.Bit8;
+                            break;
+                        default:
+                            Console.WriteLine("Invalid Pixel deapth");
+                            return;
                     }
-                    bitDepth = b / 4;
                 });
                 root.Invoke(unparsedArgs);
             }
-
-            Console.WriteLine("Debug");
-            Console.WriteLine(path);
-            Console.WriteLine(recursive);
-            Console.WriteLine(delay);
-            Console.WriteLine(ignore);
-            Console.WriteLine(output);
-            Console.WriteLine(bitDepth);
-
 
             ProgressBar pbar = new ProgressBar(1, "Total", options);
             if (File.Exists(path) && path.EndsWith(".zip"))
@@ -136,8 +137,7 @@ namespace zip2gif
                             if (entry.FullName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
                             {
                                 Image i = Image.FromStream(entry.Open());
-                                gif.AddFrame(i);
-
+                                gif.AddFrame(i, delay, bitDepth);
                             }
                             pbar.Message = "Finished";
                         }
