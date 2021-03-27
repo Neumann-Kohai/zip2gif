@@ -40,35 +40,34 @@ namespace zip2gif
             string path = "";
             string output = "";
             bool recursive = false;
-            {
-                RootCommand root = new RootCommand("A simple Program to convert zip -> gif");
-                root.AddArgument(new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"));
-                root.AddOption(new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"));
-                root.AddOption(new Option<int>(new[] { "-fps", "--framerate" },() => -1, description: "set Framerate"));
-                root.AddOption(new Option<int>(new[] {"--delay"},() => -1, description:"set delay between frames"));
-                root.AddOption(new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"));
-                root.AddOption(new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"));
-                root.AddOption(new Option<int>(new[] { "-bit" }, () => 8, description: "Collor deapth, Eather 4 or 8 bit"));
+            RootCommand root = new RootCommand("A simple Program to convert zip -> gif");
+            root.AddArgument(new Argument<string>("path", Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"));
+            root.AddOption(new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"));
+            root.AddOption(new Option<int>(new[] { "-fps", "--framerate" }, () => -1, description: "set Framerate"));
+            root.AddOption(new Option<int>(new[] { "--delay" }, () => -1, description: "set delay between frames"));
+            root.AddOption(new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"));
+            root.AddOption(new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"));
+            root.AddOption(new Option<int>(new[] { "-bit" }, () => 8, description: "Collor deapth, Eather 4 or 8 bit"));
 
-                root.Handler = CommandHandler.Create<string, bool, int, int, bool, string, int>((string p, bool r, int f, int d, bool i, string o, int b)=> 
+            root.Handler = CommandHandler.Create<string, bool, int, int, bool, string, int>((string p, bool r, int f, int d, bool i, string o, int b) =>
+            {
+                Console.WriteLine(p);
+                if (f > 0)
+                    delay = 1000 / f;
+                else if (d > 0)
+                    delay = d;
+                ignore = i;
+                path = Path.GetFullPath(p);
+                recursive = r;
+                output = o;
+                if (b != 4 || b != 8)
                 {
-                    if (f > 0)
-                        delay = 1000 / f;
-                    else if (d > 0)
-                        delay = d;
-                    ignore = i;
-                    path = Path.GetFullPath(p);
-                    recursive = r;
-                    output = o;
-                    if (b != 4 || b != 8)
-                    {
-                        Console.WriteLine("Invalid Pixel deapth");
-                        return;
-                    }
-                    bitDepth = b / 4;
-                });
-                root.Invoke(unparsedArgs);
-            }
+                    Console.WriteLine("Invalid Pixel deapth");
+                    return;
+                }
+                bitDepth = b / 4;
+            });
+            root.Invoke(unparsedArgs);
 
             Console.WriteLine("Debug");
             Console.WriteLine(path);
