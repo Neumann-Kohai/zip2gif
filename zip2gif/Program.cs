@@ -42,12 +42,12 @@ namespace zip2gif
         {
             {
                 RootCommand root = new RootCommand("A simple Program to convert zip -> gif"){
-                new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containgig zip files or a path to a specific zip file"),
-                new Option<string>(new[] { "-o", "--output" }, () => "", description: "set to change output path, default same as zip files"),
+                new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containing zip files or a path to a specific zip file"),
+                new Option<string>(new[] { "-o", "--output" }, () => "", description: "NotImplemented. Change output path"),
                 new Option<int>(new[] { "-fps", "--framerate" }, () => -1, description: "set Framerate"),
                 new Option<int>(new[] { "--delay" }, () => 30, description: "set delay between frames"),
-                new Option<int>(new[] { "--bit" }, () => 8, description: "Collor deapth, Eather 4 or 8 bit"),
-                new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirektory are search for zip files"),
+                new Option<int>(new[] { "--bit" }, () => 8, description: "Color depth, Either 4 or 8 bit"),
+                new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirectory are search for zip files"),
                 new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"),
                 };
                 root.Handler = CommandHandler.Create((string path, string output, int framerate, int delay, bool ignore, int bit, bool recursive) =>
@@ -73,13 +73,12 @@ namespace zip2gif
                             Program.bitDepth = AnimatedGif.GifQuality.Bit8;
                             break;
                         default:
-                            Console.WriteLine("Invalid Pixel deapth");
+                            Console.WriteLine("Invalid Pixel depth");
                             return;
                     }
                 });
                 root.Invoke(unparsedArgs);
             }
-
 
             ProgressBar pbar = new ProgressBar(1, "Total", options);
             if (File.Exists(path) && path.EndsWith(".zip"))
@@ -103,10 +102,10 @@ namespace zip2gif
                                     ThreadPool.QueueUserWorkItem(CreateGif, (file, pbar, countdown));
                                 }
                             }
+                            pbar.MaxTicks = countdown.CurrentCount - 1;
                         }
                     }
                     countdown.Signal();
-                    pbar.MaxTicks = countdown.CurrentCount;
                     countdown.Wait();
                 }
             }
