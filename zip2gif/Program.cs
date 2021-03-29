@@ -1,13 +1,14 @@
-﻿using ShellProgressBar;
+﻿using Gif.Components;
+using ShellProgressBar;
 using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Drawing;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
-using System.Linq;
 
 namespace zip2gif
 {
@@ -16,7 +17,6 @@ namespace zip2gif
         static string path = "";
         static string output = "";
         static int delay = 30;
-        static AnimatedGif.GifQuality bitDepth = AnimatedGif.GifQuality.Bit8;
         static bool ignore = false;
         static bool recursive = false;
 
@@ -46,11 +46,10 @@ namespace zip2gif
                 new Option<string>(new[] { "-o", "--output" }, () => "", description: "NotImplemented. Change output path"),
                 new Option<int>(new[] { "-fps", "--framerate" }, () => -1, description: "set Framerate"),
                 new Option<int>(new[] { "--delay" }, () => 30, description: "set delay between frames"),
-                new Option<int>(new[] { "--bit" }, () => 8, description: "Color depth, Either 4 or 8 bit"),
                 new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirectory are search for zip files"),
                 new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"),
                 };
-                root.Handler = CommandHandler.Create((string path, string output, int framerate, int delay, bool ignore, int bit, bool recursive) =>
+                root.Handler = CommandHandler.Create((string path, string output, int framerate, int delay, bool ignore, bool recursive) =>
                 {
                     Console.WriteLine(path);
                     if (framerate > 0)
@@ -61,21 +60,6 @@ namespace zip2gif
                     Program.path = Path.GetFullPath(path);
                     Program.recursive = recursive;
                     Program.output = output;
-                    switch (bit)
-                    {
-                        case 0:
-                            Program.bitDepth = AnimatedGif.GifQuality.Grayscale;
-                            break;
-                        case 4:
-                            Program.bitDepth = AnimatedGif.GifQuality.Bit4;
-                            break;
-                        case 8:
-                            Program.bitDepth = AnimatedGif.GifQuality.Bit8;
-                            break;
-                        default:
-                            Console.WriteLine("Invalid Pixel depth");
-                            return;
-                    }
                 });
                 root.Invoke(unparsedArgs);
             }
@@ -93,18 +77,17 @@ namespace zip2gif
                     foreach (var directory in directorys)
                     {
                         string[] files = Directory.GetFiles(directory);
+                        foreach (string file in files)
                         {
-                            foreach (string file in files)
+                            if (file.EndsWith(".zip"))
                             {
-                                if (file.EndsWith(".zip"))
-                                {
-                                    countdown.AddCount();
-                                    ThreadPool.QueueUserWorkItem(CreateGif, (file, pbar, countdown));
-                                }
+                                countdown.AddCount();
+                                ThreadPool.QueueUserWorkItem(CreateGif, (file, pbar, countdown));
                             }
-                            pbar.MaxTicks = countdown.CurrentCount - 1;
                         }
+                        pbar.MaxTicks = countdown.CurrentCount;
                     }
+                    pbar.Tick("Scan complete");
                     countdown.Signal();
                     countdown.Wait();
                 }
@@ -136,21 +119,28 @@ namespace zip2gif
                     if (archive.Entries.Count == 0)
                         return;
 
-                    using (AnimatedGif.AnimatedGifCreator gif = AnimatedGif.AnimatedGif.Create(path.Remove(path.Length - 3) + "gif", delay, -1))
+                    AnimatedGifEncoder gif = new AnimatedGifEncoder();
+
+                    gif.SetRepeat(0);
+                    gif.SetDelay(delay);
+                    using (MemoryStream memStream = new MemoryStream())
                     {
+                        gif.Start(memStream);
                         foreach (ZipArchiveEntry entry in archive.Entries)
                         {
                             pbar.Tick($"{entry.Name}: {Path.GetFileName(path)}");
                             if (entry.FullName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
                             {
                                 Image i = Image.FromStream(entry.Open());
-                                gif.AddFrame(i, delay, bitDepth);
+                                gif.AddFrame(i);
                             }
                             pbar.Message = "Finished";
                         }
+                        gif.Finish();
+                        File.WriteAllBytes(path.Remove(path.Length - 3) + "gif", memStream.ToArray());
                     }
-                    data.Item2.Tick();
                 }
+                data.Item2.Tick($"{data.Item2.MaxTicks - data.Item3?.CurrentCount - 1} out of {data.Item2.MaxTicks - 1}");
                 data.Item3?.Signal();
             }
         }
