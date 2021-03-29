@@ -1,5 +1,4 @@
 [submodule "NGif"]
 	path = NGif
 	url = https://github.com/Neumann-Kohai/NGif
-[submodule "Submod"]
 	branch = DotNet50
