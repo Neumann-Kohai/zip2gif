@@ -65,10 +65,8 @@ namespace zip2gif
                         Program.recursive = false;
                         Console.WriteLine("Recursive will be ignored");
                     }
-                    Program.output = Path.GetFullPath(output);
+                    Program.output = Path.GetFullPath(output) + (output.EndsWith('\\')?"":'\\');
                     Program.keep = keep;
-                    if(keep && !Program.recursive)
-                        Console.WriteLine("keep will be ignored");
                 });
                 root.InvokeAsync(unparsedArgs).Wait();
             }
@@ -108,7 +106,6 @@ namespace zip2gif
         {
             (string, ProgressBar, CountdownEvent) data = ((string, ProgressBar, CountdownEvent))stateInfo;
             string path = data.Item1;
-            Console.WriteLine(path);
 
             if (!File.Exists(path))
                 return;
@@ -147,8 +144,9 @@ namespace zip2gif
                             pbar.Message = "Finished";
                         }
                         gif.Finish();
-                        string outFile = output + path.Remove(path.Length - 3) + "gif";
-                        Console.WriteLine(outFile);
+                        string outFile = keep?path.Remove(0, output.Length):Path.GetFileName(path);
+                        outFile = output +  outFile.Remove(outFile.Length - 3) + "gif";
+                        Directory.CreateDirectory(Path.GetDirectoryName(outFile));
                         File.WriteAllBytes(outFile, memStream.ToArray());
                     }
                 }
