@@ -19,6 +19,7 @@ namespace zip2gif
         static int delay = 30;
         static bool ignore = false;
         static bool recursive = false;
+        static bool keep = false;
 
         private static readonly ProgressBarOptions options = new ProgressBarOptions
         {
@@ -43,15 +44,15 @@ namespace zip2gif
             {
                 RootCommand root = new RootCommand("A simple Program to convert zip -> gif"){
                 new Argument<string>("path", getDefaultValue: Directory.GetCurrentDirectory, description: "Path to eather the folder containing zip files or a path to a specific zip file"),
-                new Option<string>(new[] { "-o", "--output" }, () => "", description: "NotImplemented. Change output path"),
+                new Option<string>(new[] { "-o", "--output" }, Directory.GetCurrentDirectory, description: "Change output path"),
                 new Option<int>(new[] { "-fps", "--framerate" }, () => -1, description: "set Framerate"),
                 new Option<int>(new[] { "--delay" }, () => 30, description: "set delay between frames"),
                 new Option<bool>(new[] { "-r", "--recursive" }, description: "If set subdirectory are search for zip files"),
                 new Option<bool>(new[] { "-i", "--ignore" }, description: "if set animation.json is ignored"),
+                new Option<bool>(new[]{ "-k", "--keep"}, description:"NotImplemented. keep file structure")
                 };
-                root.Handler = CommandHandler.Create((string path, string output, int framerate, int delay, bool ignore, bool recursive) =>
+                root.Handler = CommandHandler.Create((string path, string output, int framerate, int delay, bool ignore, bool recursive, bool keep) =>
                 {
-                    Console.WriteLine(path);
                     if (framerate > 0)
                         Program.delay = 1000 / framerate;
                     else
@@ -59,9 +60,17 @@ namespace zip2gif
                     Program.ignore = ignore;
                     Program.path = Path.GetFullPath(path);
                     Program.recursive = recursive;
-                    Program.output = output;
+                    if (File.Exists(path) && path.EndsWith(".zip"))
+                    {
+                        Program.recursive = false;
+                        Console.WriteLine("Recursive will be ignored");
+                    }
+                    Program.output = Path.GetFullPath(output);
+                    Program.keep = keep;
+                    if(keep && !Program.recursive)
+                        Console.WriteLine("keep will be ignored");
                 });
-                root.Invoke(unparsedArgs);
+                root.InvokeAsync(unparsedArgs).Wait();
             }
 
             ProgressBar pbar = new ProgressBar(1, "Total", options);
@@ -99,6 +108,7 @@ namespace zip2gif
         {
             (string, ProgressBar, CountdownEvent) data = ((string, ProgressBar, CountdownEvent))stateInfo;
             string path = data.Item1;
+            Console.WriteLine(path);
 
             if (!File.Exists(path))
                 return;
@@ -137,7 +147,9 @@ namespace zip2gif
                             pbar.Message = "Finished";
                         }
                         gif.Finish();
-                        File.WriteAllBytes(path.Remove(path.Length - 3) + "gif", memStream.ToArray());
+                        string outFile = output + path.Remove(path.Length - 3) + "gif";
+                        Console.WriteLine(outFile);
+                        File.WriteAllBytes(outFile, memStream.ToArray());
                     }
                 }
                 data.Item2.Tick($"{data.Item2.MaxTicks - data.Item3?.CurrentCount - 1} out of {data.Item2.MaxTicks - 1}");
