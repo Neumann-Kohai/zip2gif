@@ -32,4 +32,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: zip2gif
-        path: /home/runner/work/zip2gif/zip2gif/zip2gif/bin/Debug/net5.0/win10-x64/publish/
+        path: D:\a\zip2gif\zip2gif\zip2gif\bin\Debug\net5.0\win10-x64\publish\
