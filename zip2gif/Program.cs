@@ -92,9 +92,9 @@ namespace zip2gif
                                 ThreadPool.QueueUserWorkItem(CreateGif, (file, pbar, countdown));
                             }
                         }
-                        pbar.MaxTicks = countdown.CurrentCount;
+                        pbar.MaxTicks = countdown.CurrentCount - 1;
                     }
-                    pbar.Tick("Scan complete");
+                    pbar.Message = "Scan complete";
                     countdown.Signal();
                     countdown.Wait();
                 }
